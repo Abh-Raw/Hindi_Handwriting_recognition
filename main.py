@@ -13,16 +13,16 @@ import cv2
 from keras.models import load_model
 from collections import deque #queue
 
-data = pd.read_csv('data.csv')
+data = pd.read_csv('data.csv')          #Reading data
 data = data.iloc[0:72000, :]
 dataset = np.array(data)
-np.random.shuffle(dataset)
+np.random.shuffle(dataset)          #Randomly shuffled dataset
 X = dataset
 Y = dataset
 X = X[:,0:1024]
 Y = Y[:, 1024]
 X_train = X[0:70000, :]
-X_train = X_train / 255.
+X_train = X_train / 255.            #Split into training set and test set(used for validation)
 X_test = X[70000:72000, :]
 X_test = X_test / 255.
 
@@ -40,13 +40,13 @@ print("Y_train shape: " + str(Y_train.shape))
 print("X_test shape: " + str(X_test.shape))
 print("Y_test shape :" + str(Y_test.shape))
 
-image_x = 32
+image_x = 32                #defined image size
 image_y = 32
 
 label_encoder = LabelEncoder()
 Y_train_new = label_encoder.fit_transform(np.array(Y_train.T))
 Y_test_new = label_encoder.fit_transform(np.array(Y_test.T))
-train_y = np_utils.to_categorical(Y_train_new)
+train_y = np_utils.to_categorical(Y_train_new)              #one hot encoding of categorical labels
 test_y = np_utils.to_categorical(Y_test_new)
 X_train = X_train.reshape(X_train.shape[0], image_x, image_y, 1)
 X_train = np.asarray(X_train).astype(np.float64)
@@ -59,7 +59,7 @@ print("Y_train_shape: " + str(train_y.shape))
 
 #Building a model
 
-def keras_model(image_x,image_y):
+def keras_model(image_x,image_y):       #Model building(Model - Convolutional Neural Network)
     num_of_classes = 36
     model = Sequential()
     model.add(Conv2D(filters = 32, kernel_size = (5,5), input_shape=(image_x, image_y, 1), activation='relu'))
@@ -67,9 +67,9 @@ def keras_model(image_x,image_y):
     model.add(Conv2D(64, (5, 5), activation='relu'))
     model.add(MaxPooling2D(pool_size = (5, 5), strides = (5, 5), padding = 'same'))
     model.add(Flatten())
-    model.add(Dense(num_of_classes, activation='softmax'))
+    model.add(Dense(num_of_classes, activation='softmax'))      #Used softmax activation for probability of each label
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    filepath = "devanagari.h5"
+    filepath = "devanagari.h5"          #filepath for saved model in .h5 format
     checkpoint1 = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_beat_only=True, mode='max')
     callbacks_list = [checkpoint1]
 
@@ -77,9 +77,12 @@ def keras_model(image_x,image_y):
 
 model, callbacks_list = keras_model(image_x, image_y)
 
+# Fit the test data as vlidation in trained model
 model.fit(X_train, train_y, validation_data=(X_test, test_y), epochs=3, batch_size=64, callbacks=callbacks_list)
 scores = model.evaluate(X_test, test_y, verbose=0)
 print("CNN Error: %.2f%%" % (100 - scores[1] * 100))
+
+#Printed model details
 model.summary()
 model.save('devanagiri.h5')
 
